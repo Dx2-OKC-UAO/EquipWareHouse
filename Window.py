@@ -435,7 +435,7 @@ class AddCartQuantity(Toplevel):
 
     def change(self):
         self.title('Приход')
-        self.geometry('300x150+400+300')
+        self.geometry('300x130+400+300')
         self.resizable(False, False)
 
         label_have = Label(self, text='Катриджей на складе: ')
@@ -454,6 +454,7 @@ class AddCartQuantity(Toplevel):
         btn_edit.grid(row=2, column=1, pady=20)
         btn_edit.bind('<Button-1>', lambda event: self.view.change_quantity(self.entry_have.get(),
                                                                             self.entry_take.get()))
+        btn_edit.bind('<Button-1>', lambda event: self.destroy(), add='+')
 
         btn_cancel = ttk.Button(self, text='Закрыть', command=self.destroy)
         btn_cancel.grid(row=2, column=0, pady=20)
@@ -587,7 +588,6 @@ class GiveCart(Toplevel):
             self.cart_entry_barcode.insert(0, 'None')
 
 
-
 class Give(Toplevel):
     def __init__(self):
         super().__init__()
@@ -656,13 +656,13 @@ class Authorization(Toplevel):
 
     def log_in(self):
         self.title('Авторизация')
-        self.geometry('300x200+400+300')
+        self.geometry('300x130+400+300')
 
         label_log = Label(self, text='Логин: ')
-        label_log.grid(row=0, column=0, sticky='w', padx=30, pady=10)
+        label_log.grid(row=0, column=0, sticky='w', padx=5, pady=10)
 
         label_pas = Label(self, text='Пароль: ')
-        label_pas.grid(row=1, column=0, sticky='w', padx=30)
+        label_pas.grid(row=1, column=0, sticky='w', padx=5)
 
         self.entry_log = ttk.Entry(self, width=30)
         self.entry_log.grid(row=0, column=1, sticky='e', padx=30, pady=3)
@@ -674,6 +674,7 @@ class Authorization(Toplevel):
         cart_btn_edit.grid(row=6, column=1, pady=15)
         cart_btn_edit.bind('<Button-1>', lambda event: self.view.logg_in(self.entry_log.get(),
                                                                          self.entry_pas.get()))
+        cart_btn_edit.bind('<Button-1>', lambda event: self.destroy(), add='+')
 
 
 if __name__ == "__main__":

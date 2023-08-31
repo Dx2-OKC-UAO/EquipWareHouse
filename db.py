@@ -95,13 +95,19 @@ def give_object_cart(name, quantity, barcode, state, user, application, var):
     if final > 0:
         cur_cart.execute('''UPDATE Warehouse SET Quantity=? WHERE Id=?''', (final, var))
         db_cart.commit()
-        #
+        cur_cart.execute('''SELECT ID FROM Issued WHERE Id=(SELECT MAX(Id) FROM Issued)''')
+        ID_last = cur_cart.fetchone()
         cur_cart.execute(
             '''INSERT INTO Issued (Name, Quantity, Barcode, State, User, Application, Data) VALUES (?, ?, ?, ?, ?, ?, ?) ''',
             (name, quantity, barcode, state, user, application, current_date))
         db_cart.commit()
-        #
-        mb.showinfo('Информация', 'Картридж выдан')
+        cur_cart.execute('''SELECT ID FROM Issued WHERE Id=(SELECT MAX(Id) FROM Issued)''')
+        ID_new = cur_cart.fetchone()
+
+        if ID_new > ID_last:
+            mb.showinfo('Информация', 'Картридж выдан')
+        else:
+            mb.showerror('Ошибка', 'Убери свои кривые руки от компьютера!!!')
 
     else:
         mb.showerror('Информация', 'Картриджы отсутвуют')
@@ -143,7 +149,7 @@ def download_cart_between(data_1, data_2):
 
 
 def change_cart_quantity(have, take, var):
-    summ = have + take
+    summ = int(have) + int(take)
     cur_cart.execute('''UPDATE Warehouse SET Quantity=? WHERE Id=?''', (summ, var))
     db_cart.commit()
     mb.showinfo('Информация', 'Данные обновлены')
