@@ -95,11 +95,12 @@ def give_object_cart(name, quantity, barcode, state, user, application, var):
     if final > 0:
         cur_cart.execute('''UPDATE Warehouse SET Quantity=? WHERE Id=?''', (final, var))
         db_cart.commit()
-
+        #
         cur_cart.execute(
             '''INSERT INTO Issued (Name, Quantity, Barcode, State, User, Application, Data) VALUES (?, ?, ?, ?, ?, ?, ?) ''',
             (name, quantity, barcode, state, user, application, current_date))
         db_cart.commit()
+        #
         mb.showinfo('Информация', 'Картридж выдан')
 
     else:
@@ -148,6 +149,34 @@ def change_cart_quantity(have, take, var):
     mb.showinfo('Информация', 'Данные обновлены')
 
 
+def check_user(log, pas):
+    log_r, pas_r = 0, 0
+    current_date = date.today()
+    log_list = []
+    pas_list = []
+    cur_cart.execute('''SELECT LOGIN FROM Users''')
+    log_list = cur_cart.fetchall()
+    cur_cart.execute('''SELECT PASSWORD FROM Users''')
+    pas_list = cur_cart.fetchall()
+
+    for login in log_list:
+        if ("".join(login)) == log:
+            log_r = 2
+            for password in pas_list:
+                if ("".join(password)) == pas:
+                    pas_r = 1
+                    cur_cart.execute('''INSERT INTO History (Login,Data) VALUES (?,?)''', (log, current_date))
+                    db_cart.commit()
+                    mb.showinfo('Авторизация', 'Авторизация прошла успешно')
+                else:
+                    mb.showerror('Авторизация', 'Пароль не верный')
+        else:
+            mb.showerror('Авторизация', 'Такой логин не зарегистрирован')
+
+    res = log_r + pas_r
+    return res
+
+
 def defalt_data(var):
     cur.execute('''SELECT * FROM Home WHERE Id_number=?''', [var])
     row = cur.fetchone()
@@ -164,3 +193,5 @@ def defalt_quantity(var):
     cur_cart.execute('''SELECT Quantity FROM Warehouse WHERE Id=?''', [var])
     row = cur_cart.fetchone()
     return row
+
+

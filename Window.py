@@ -8,13 +8,16 @@ from tkcalendar import DateEntry
 
 class Window(Frame):
 
-    def __init__(self, root):
+    def __init__(self, root, res):
         super().__init__(root)
+        self.res = res
         self.update_img = None
         self.draw_widgets()
         self.draw_menu()
         self.view_records()
         self.view_records_cart()
+
+
 
     def draw_widgets(self):
         tabs_control = Notebook()
@@ -70,10 +73,12 @@ class Window(Frame):
                                  bd=0, compound=TOP, image=self.add_img, command=self.add_cart)
         btn_open_dialog.grid(row=0, column=0)
 
+
         self.add_img_cart = PhotoImage(file='icons/add.png')
         btn_open_dialog = Button(toolbar_cart, text='Приход:  ', bg='beige',
                                  bd=0, compound=TOP, image=self.add_img, command=self.add_cart_quantity)
         btn_open_dialog.grid(row=0, column=1)
+
 
         self.search_img_cart = PhotoImage(file='icons/search.png')
         btn_search = Button(toolbar_cart, text='Поиск', bg='beige', bd=0, image=self.search_img,
@@ -149,12 +154,17 @@ class Window(Frame):
         file_menu.add_separator()
         file_menu.add_command(label='Выгрузить за все время', command=self.download)
         file_menu.add_command(label='Выгрузить с определенной даты')
-        file_menu.add_command(label='Выгрузить за период', command= self.download_b)
+        file_menu.add_command(label='Выгрузить за период', command=self.download_b)
+
+        log_menu = Menu(menu_bar, tearoff=0)
+        log_menu.add_command(label='Авторизоваться в программе', command=self.class_log)
+        log_menu.add_command(label='Выйти из аккаунта', command=self.exit)
         #
         # info_menu = Menu(menu_bar, tearoff=0)
         # info_menu.add_command(label="О приложении")
         #
         menu_bar.add_cascade(label="Файл", menu=file_menu)
+        menu_bar.add_cascade(label='Авторизация', menu=log_menu)
         # menu_bar.add_cascade(label="Справка", menu=info_menu)
 
     def download(self):
@@ -206,7 +216,8 @@ class Window(Frame):
         self.view_records()
 
     def give_object_cart(self, name, quantity, barcode, state, user, application):
-        db.give_object_cart(name, quantity, barcode, state, user, application, self.tree2.set(self.tree2.selection()[0], '#1'))
+        db.give_object_cart(name, quantity, barcode, state, user, application,
+                            self.tree2.set(self.tree2.selection()[0], '#1'))
         self.view_records_cart()
 
     # Списать технику
@@ -220,7 +231,10 @@ class Window(Frame):
         AddData()
 
     def add_cart(self):
-        AddDataCart()
+        if self.res == 3:
+            AddDataCart()
+        else:
+            mb.showerror('Ошибка', 'Необходимо авторизоваться')
 
     # Классы редактирования записи
     def edit(self):
@@ -228,6 +242,12 @@ class Window(Frame):
 
     def change_quantity(self, have, take):
         db.change_cart_quantity(have, take, self.tree2.set(self.tree2.selection()[0], '#1'))
+
+    def logg_in(self, log, pas):
+        self.res = db.check_user(log, pas)
+
+    def exit(self):
+        self.res = 0
 
     # Классы поиска записи
     def search(self):
@@ -247,7 +267,13 @@ class Window(Frame):
         DownLoad()
 
     def add_cart_quantity(self):
-        AddCartQuantity()
+        if self.res == 3:
+            AddCartQuantity()
+        else:
+            mb.showerror('Ошибка', 'Необходимо авторизоваться')
+
+    def class_log(self):
+        Authorization()
 
 
 class AddData(Toplevel):
@@ -412,14 +438,14 @@ class AddCartQuantity(Toplevel):
         self.geometry('300x150+400+300')
         self.resizable(False, False)
 
-        label_have = Label(self, text = 'Катриджей на складе: ')
-        label_have.grid(row=0, column=0, padx = 20, pady = 5, sticky='w')
+        label_have = Label(self, text='Катриджей на складе: ')
+        label_have.grid(row=0, column=0, padx=20, pady=5, sticky='w')
 
         label_take = Label(self, text='Катриджей пришло:')
-        label_take.grid(row=1, column=0, padx = 20, pady = 5, sticky='w')
+        label_take.grid(row=1, column=0, padx=20, pady=5, sticky='w')
 
         self.entry_have = ttk.Entry(self)
-        self.entry_have.grid(row=0, column= 1)
+        self.entry_have.grid(row=0, column=1)
 
         self.entry_take = ttk.Entry(self)
         self.entry_take.grid(row=1, column=1)
@@ -431,7 +457,6 @@ class AddCartQuantity(Toplevel):
 
         btn_cancel = ttk.Button(self, text='Закрыть', command=self.destroy)
         btn_cancel.grid(row=2, column=0, pady=20)
-
 
     def default_change(self):
         row = db.defalt_quantity(self.view.tree2.set(self.view.tree2.selection()[0], '#1'))
@@ -547,9 +572,10 @@ class GiveCart(Toplevel):
                                                                                   self.cart_btn_combobox.get(),
                                                                                   self.cart_entry_user.get(),
                                                                                   self.cart_entry_application.get()))
-
+        cart_btn_edit.bind('<Button-1>', lambda event: self.destroy(), add='+')
         cart_btn_cancel = ttk.Button(self, text='Закрыть', command=self.destroy)
         cart_btn_cancel.grid(row=6, column=0, pady=15)
+
 
     def default_cart(self):
         row_cart = db.defalt_data_cart(self.view.tree2.set(self.view.tree2.selection()[0], '#1'))
@@ -559,6 +585,7 @@ class GiveCart(Toplevel):
             self.cart_entry_barcode.insert(0, row_cart[3])
         else:
             self.cart_entry_barcode.insert(0, 'None')
+
 
 
 class Give(Toplevel):
@@ -592,10 +619,8 @@ class DownLoad(Toplevel):
         self.main_cal()
 
     def main_cal(self):
-
         self.title('Выбрать промежуток')
         self.geometry('300x120+400+300')
-
 
         def get_date():
             selected_date = cal.get()
@@ -620,14 +645,43 @@ class DownLoad(Toplevel):
         btn = Button(self, text="Подтвердить")
         btn.bind('<Button-1>', lambda event: self.view.download_between(get_date(), get_date_2()))
 
-        btn.grid(row=2, column=0, columnspan=2, pady= 15)
+        btn.grid(row=2, column=0, columnspan=2, pady=15)
+
+
+class Authorization(Toplevel):
+    def __init__(self):
+        super().__init__()
+        self.view = app
+        self.log_in()
+
+    def log_in(self):
+        self.title('Авторизация')
+        self.geometry('300x200+400+300')
+
+        label_log = Label(self, text='Логин: ')
+        label_log.grid(row=0, column=0, sticky='w', padx=30, pady=10)
+
+        label_pas = Label(self, text='Пароль: ')
+        label_pas.grid(row=1, column=0, sticky='w', padx=30)
+
+        self.entry_log = ttk.Entry(self, width=30)
+        self.entry_log.grid(row=0, column=1, sticky='e', padx=30, pady=3)
+
+        self.entry_pas = ttk.Entry(self, width=30)
+        self.entry_pas.grid(row=1, column=1, sticky='e', padx=30, pady=3)
+
+        cart_btn_edit = ttk.Button(self, text='Войти')
+        cart_btn_edit.grid(row=6, column=1, pady=15)
+        cart_btn_edit.bind('<Button-1>', lambda event: self.view.logg_in(self.entry_log.get(),
+                                                                         self.entry_pas.get()))
 
 
 if __name__ == "__main__":
     db.start_object_db()
     db.start_cart_db()
+#    db.check_user('Krasti', '1234')
     root = Tk()
-    app = Window(root)
+    app = Window(root, 0)
     app.pack()
     title = 'Склад'
     root.title(title)
