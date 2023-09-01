@@ -156,12 +156,18 @@ class Window(Frame):
         log_menu = Menu(menu_bar, tearoff=0)
         log_menu.add_command(label='Авторизоваться в программе', command=self.class_log)
         log_menu.add_command(label='Выйти из аккаунта', command=self.exit)
+
+        bar_menu = Menu(menu_bar, tearoff=0)
+        bar_menu.add_command(label='Вывести штрих-код', command=self.print_bar)
+
         #
         # info_menu = Menu(menu_bar, tearoff=0)
         # info_menu.add_command(label="О приложении")
         #
         menu_bar.add_cascade(label="Файл", menu=file_menu)
         menu_bar.add_cascade(label='Авторизация', menu=log_menu)
+        menu_bar.add_cascade(label='Штрих-код', menu=bar_menu)
+
         # menu_bar.add_cascade(label="Справка", menu=info_menu)
 
     # ++++++++++++++++++++БЛОК ФУНКЦИЙ МЕНЮ++++++++++++++++++++ #
@@ -245,6 +251,13 @@ class Window(Frame):
 
     def exit(self):
         self.res = 0
+
+    def print_bar(self):
+        try:
+            self.tree2.set(self.tree2.selection()[0], '#1')
+            db.get_bar(self.tree2.set(self.tree2.selection()[0], '#1'))
+        except IndexError:
+            mb.showwarning('Информация', 'Пожалуйста выберите запись')
 
     # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
     # ---------------------------------------------------------- #

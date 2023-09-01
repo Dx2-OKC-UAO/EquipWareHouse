@@ -3,7 +3,7 @@ from datetime import date
 from dirwork import create_file, create_file_between
 from xlsxwriter.workbook import Workbook
 from tkinter import messagebox as mb
-
+from barcode_gen import generate_barcode
 
 def start_object_db():
     global db, cur
@@ -37,6 +37,12 @@ def get_data_cart():
     cart = cur_cart.fetchall()
 
     return cart
+
+
+def get_bar(var):
+    cur_cart.execute('''SELECT Barcode FROM Warehouse WHERE Id=?''', [var])
+    barcod = cur_cart.fetchone()
+    generate_barcode(barcod)
 
 
 def write_off(var):
