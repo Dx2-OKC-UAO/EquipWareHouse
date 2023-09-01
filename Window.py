@@ -15,9 +15,8 @@ class Window(Frame):
         self.draw_widgets()
         self.draw_menu()
         self.view_records()
-        self.view_records_cart()
 
-
+    #        self.view_records_cart()
 
     def draw_widgets(self):
         tabs_control = Notebook()
@@ -73,12 +72,10 @@ class Window(Frame):
                                  bd=0, compound=TOP, image=self.add_img, command=self.add_cart)
         btn_open_dialog.grid(row=0, column=0)
 
-
         self.add_img_cart = PhotoImage(file='icons/add.png')
         btn_open_dialog = Button(toolbar_cart, text='Приход:  ', bg='beige',
                                  bd=0, compound=TOP, image=self.add_img, command=self.add_cart_quantity)
         btn_open_dialog.grid(row=0, column=1)
-
 
         self.search_img_cart = PhotoImage(file='icons/search.png')
         btn_search = Button(toolbar_cart, text='Поиск', bg='beige', bd=0, image=self.search_img,
@@ -88,7 +85,7 @@ class Window(Frame):
 
         self.refresh_img_cart = PhotoImage(file='icons/refresh.png')
         btn_refresh = Button(toolbar_cart, text='Обновить', bg='beige', bd=0, image=self.refresh_img,
-                             compound=TOP, command=self.view_records_cart)
+                             compound=TOP, command=self.view_records)
         btn_refresh.grid(row=0, column=3)
 
         self.give_img_cart = PhotoImage(file='icons/delete.png')
@@ -167,6 +164,9 @@ class Window(Frame):
         menu_bar.add_cascade(label='Авторизация', menu=log_menu)
         # menu_bar.add_cascade(label="Справка", menu=info_menu)
 
+    # ++++++++++++++++++++БЛОК ФУНКЦИЙ МЕНЮ++++++++++++++++++++ #
+
+    # --------------------Выгрузка отчетов-------------------- #
     def download(self):
         db.download_cart()
         mb.showinfo('Информация', 'Данные выгружены в папку отчеты')
@@ -175,15 +175,14 @@ class Window(Frame):
         db.download_cart_between(data_1, data_2)
         mb.showinfo('Информация', 'Данные выгружены в папку отчеты')
 
+    # --------------------Обновление данных на страницах-------------------- #
     def view_records(self):
         [self.tree.delete(i) for i in self.tree.get_children()]
         [self.tree.insert('', 'end', values=row) for row in db.get_data()]
-
-    def view_records_cart(self):
         [self.tree2.delete(i) for i in self.tree2.get_children()]
         [self.tree2.insert('', 'end', values=row) for row in db.get_data_cart()]
 
-    # -------------------------------------БЛОК ФУНКЦИЙ МЕНЮ
+    # --------------------Добавление записей-------------------- #
     # Добавить запись
     def add_new_record(self, local, name, ident, number, quantity, status, state):
         db.add_new_record(local, name, ident, number, quantity, status, state)
@@ -191,44 +190,72 @@ class Window(Frame):
 
     def add_new_record_cart(self, name, quantity, barcode):
         db.add_new_record_cart(name, quantity, barcode)
-        self.view_records_cart()
-
-    # Редактировать запись
-    def update_record(self, local, name, ident, number, quantity, status, state):
-        db.edit_records(local, name, ident, number, quantity, status, state,
-                        self.tree.set(self.tree.selection()[0], '#1'))
         self.view_records()
 
-    # Искать среди записей
-    def search_records(self, name):
-        description = ('%' + name + '%',)
-        [self.tree.delete(i) for i in self.tree.get_children()]
-        [self.tree.insert('', 'end', values=row) for row in db.search_records(description)]
+    # --------------------Редактирование записей-------------------- #
 
-    def search_records_cart(self, name):
-        description = ('%' + name + '%',)
-        [self.tree2.delete(i) for i in self.tree2.get_children()]
-        [self.tree2.insert('', 'end', values=row) for row in db.search_records_cart(description)]
+    def update_record(self, local, name, ident, number, quantity, status, state):
+        try:
+            db.edit_records(local, name, ident, number, quantity, status, state,
+                            self.tree.set(self.tree.selection()[0], '#1'))
+        except IndexError:
+            mb.showwarning('Информация', 'Пожалуйста выберите запись')
+        self.view_records()
 
-    # Выдать технику
+    def change_quantity(self, have, take):
+        db.change_cart_quantity(have, take, self.tree2.set(self.tree2.selection()[0], '#1'))
+        self.view_records()
+
+    def write_off_db(self):
+
+        if self.res == 3:
+            try:
+                db.write_off(self.tree.set(self.tree.selection()[0], '#1'))
+            except IndexError:
+                mb.showwarning('Информация', 'Пожалуйста выберите запись')
+        else:
+            mb.showerror('Ошибка', 'Необходимо авторизоваться')
+        self.view_records()
+
     def give_object(self, state):
+
         db.give_object(state, self.tree.set(self.tree.selection()[0], '#1'))
         self.view_records()
 
     def give_object_cart(self, name, quantity, barcode, state, user, application):
-        db.give_object_cart(name, quantity, barcode, state, user, application,
-                            self.tree2.set(self.tree2.selection()[0], '#1'))
-        self.view_records_cart()
 
-    # Списать технику
-    def write_off_db(self):
-        db.write_off(self.tree.set(self.tree.selection()[0], '#1'))
+        db.give_object_cart(name, quantity, barcode, state, user, application,
+                                self.tree2.set(self.tree2.selection()[0], '#1'))
         self.view_records()
 
-    # -------------------------------------БЛОК ФУНКЦИЙ ЗАПУСКА КЛАССОВ
-    # Классы добавления записи
+    # --------------------Поиск среди записей-------------------- #
+    def search_records(self, name, trigger):
+        if trigger == 1:
+            description = ('%' + name + '%',)
+            [self.tree.delete(i) for i in self.tree.get_children()]
+            [self.tree.insert('', 'end', values=row) for row in db.search_records(description, 1)]
+        else:
+            description = ('%' + name + '%',)
+            [self.tree2.delete(i) for i in self.tree2.get_children()]
+            [self.tree2.insert('', 'end', values=row) for row in db.search_records(description, 2)]
+
+    # --------------------Menu bar-------------------- #
+    def logg_in(self, log, pas):
+        self.res = db.check_user(log, pas)
+
+    def exit(self):
+        self.res = 0
+
+    # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+    # ---------------------------------------------------------- #
+    # ++++++++++++++++++++Активация дочерних окон++++++++++++++++++++ #
+
+    # --------------------Добавление записей-------------------- #
     def add(self):
-        AddData()
+        if self.res == 3:
+            AddData()
+        else:
+            mb.showerror('Ошибка', 'Необходимо авторизоваться')
 
     def add_cart(self):
         if self.res == 3:
@@ -236,44 +263,57 @@ class Window(Frame):
         else:
             mb.showerror('Ошибка', 'Необходимо авторизоваться')
 
-    # Классы редактирования записи
+    # --------------------Редактирование записей-------------------- #
     def edit(self):
-        EditRecord()
+        if self.res == 3:
+            try:
+                self.tree.set(self.tree.selection()[0], '#1')
+                EditRecord()
+            except IndexError:
+                mb.showwarning('Информация', 'Пожалуйста выберите запись')
+        else:
+            mb.showerror('Ошибка', 'Необходимо авторизоваться')
 
-    def change_quantity(self, have, take):
-        db.change_cart_quantity(have, take, self.tree2.set(self.tree2.selection()[0], '#1'))
+    def give(self):
+        try:
+            self.tree.set(self.tree.selection()[0], '#1')
+            Give()
+        except IndexError:
+            mb.showwarning('Информация', 'Пожалуйста выберите запись')
 
-    def logg_in(self, log, pas):
-        self.res = db.check_user(log, pas)
+    def give_cart(self):
+        try:
+            self.tree2.set(self.tree2.selection()[0], '#1')
+            GiveCart()
+        except IndexError:
+            mb.showwarning('Информация', 'Пожалуйста выберите запись')
 
-    def exit(self):
-        self.res = 0
+    def add_cart_quantity(self):
+        if self.res == 3:
+            try:
+                self.tree2.set(self.tree2.selection()[0], '#1')
+                AddCartQuantity()
+            except IndexError:
+                mb.showwarning('Информация', 'Пожалуйста выберите запись')
+        else:
+            mb.showerror('Ошибка', 'Необходимо авторизоваться')
 
-    # Классы поиска записи
+    # --------------------Поиск среди записей-------------------- #
     def search(self):
         Search()
 
     def search_cart(self):
         SearchCart()
 
-    # Классы выдачи техники
-    def give(self):
-        Give()
-
-    def give_cart(self):
-        GiveCart()
+    # --------------------Menu bar-------------------- #
 
     def download_b(self):
         DownLoad()
 
-    def add_cart_quantity(self):
-        if self.res == 3:
-            AddCartQuantity()
-        else:
-            mb.showerror('Ошибка', 'Необходимо авторизоваться')
-
     def class_log(self):
         Authorization()
+    # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++ #
+    # ---------------------------------------------------------- #
 
 
 class AddData(Toplevel):
@@ -466,9 +506,9 @@ class AddCartQuantity(Toplevel):
 
 class Search(Toplevel):
     def __init__(self):
-        super().__init__()
-        self.init_search()
+        super().__init__(root)
         self.view = app
+        self.init_search()
 
     def init_search(self):
         self.title('Поиск')
@@ -486,33 +526,21 @@ class Search(Toplevel):
 
         btn_search = ttk.Button(self, text='Поиск')
         btn_search.place(x=105, y=50)
-        btn_search.bind('<Button-1>', lambda event: self.view.search_records(self.entry_search.get()))
+        btn_search.bind('<Button-1>', lambda event: self.view.search_records(self.entry_search.get(), 1))
         btn_search.bind('<Button-1>', lambda event: self.destroy(), add='+')
 
 
-class SearchCart(Toplevel):
+class SearchCart(Search):
     def __init__(self):
         super().__init__()
-        self.init_search()
         self.view = app
+        self.init_search_cart()
 
-    def init_search(self):
+    def init_search_cart(self):
         self.title('Поиск')
-        self.geometry('300x100+400+300')
-        self.resizable(False, False)
-
-        label_search = Label(self, text='Поиск')
-        label_search.place(x=50, y=20)
-
-        self.entry_search = ttk.Entry(self)
-        self.entry_search.place(x=105, y=20, width=150)
-
-        btn_cancel = ttk.Button(self, text='Закрыть', command=self.destroy)
-        btn_cancel.place(x=185, y=50)
-
         btn_search = ttk.Button(self, text='Поиск')
         btn_search.place(x=105, y=50)
-        btn_search.bind('<Button-1>', lambda event: self.view.search_records_cart(self.entry_search.get()))
+        btn_search.bind('<Button-1>', lambda event: self.view.search_records(self.entry_search.get(), 2))
         btn_search.bind('<Button-1>', lambda event: self.destroy(), add='+')
 
 
@@ -576,7 +604,6 @@ class GiveCart(Toplevel):
         cart_btn_edit.bind('<Button-1>', lambda event: self.destroy(), add='+')
         cart_btn_cancel = ttk.Button(self, text='Закрыть', command=self.destroy)
         cart_btn_cancel.grid(row=6, column=0, pady=15)
-
 
     def default_cart(self):
         row_cart = db.defalt_data_cart(self.view.tree2.set(self.view.tree2.selection()[0], '#1'))
@@ -680,7 +707,7 @@ class Authorization(Toplevel):
 if __name__ == "__main__":
     db.start_object_db()
     db.start_cart_db()
-#    db.check_user('Krasti', '1234')
+    #    db.check_user('Krasti', '1234')
     root = Tk()
     app = Window(root, 0)
     app.pack()

@@ -66,15 +66,15 @@ def edit_records(local, name, ident, number, quantity, status, state, var):
     db.commit()
 
 
-def search_records(description):
-    cur.execute('''SELECT * FROM Home WHERE name LIKE ?''', description)
-    row = cur.fetchall()
-    return row
+def search_records(description, trigger):
 
+    if trigger == 1:
+        cur.execute('''SELECT * FROM Home WHERE name LIKE ?''', description)
+        row = cur.fetchall()
+    else:
+        cur_cart.execute('''SELECT * FROM Warehouse WHERE name LIKE ?''', description)
+        row = cur_cart.fetchall()
 
-def search_records_cart(description):
-    cur_cart.execute('''SELECT * FROM Warehouse WHERE name LIKE ?''', description)
-    row = cur_cart.fetchall()
     return row
 
 
