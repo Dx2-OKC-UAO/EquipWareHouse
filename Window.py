@@ -105,6 +105,11 @@ class Window(Frame):
                                  bd=0, compound=TOP, image=self.add_img, command=self.open_many_cart)
         btn_open_dialog.grid(row=0, column=6)
 
+        self.add_img_cart = PhotoImage(file='icons/add.png')
+        btn_open_dialog = Button(toolbar_cart, text='Очистить список', bg='beige',
+                                 bd=0, compound=TOP, image=self.add_img, command=self.clear)
+        btn_open_dialog.grid(row=0, column=7)
+
         toolbar_cart.pack(fill=BOTH)
 
 
@@ -274,6 +279,9 @@ class Window(Frame):
 
         db.give_many_cart(final_list)
         self.view_records()
+
+    def clear(self):
+        globals.listCart = []
 
 
     def add_in_list_cart(self, name, quantity):
@@ -884,20 +892,18 @@ class ManyCart(Toplevel):
         # print(list_1)
         # cart_btn_edit.bind('<Button-1>', lambda event: self.list_count(my_entries_count, list_2), add='+')
         # cart_btn_edit.bind('<Button-1>', lambda event: self.list_application(my_entries_application, list_3), add='+')
-        cart_btn_edit.bind('<Button-1>', lambda event: self.get_c(y, self.list_name(my_entries_name),
+        cart_btn_edit.bind('<Button-1>', lambda event: self.get_c(y - 1, self.list_name(my_entries_name),
                                                                   self.list_count(my_entries_count),
                                                                   self.list_application(my_entries_application),
                                                                   self.cart_btn_combobox.get(),
                                                                   self.cart_entry_user.get(), list_of_id), add='+')
 
-        # cart_btn_edit.bind('<Button-1>', lambda event: self.destroy(), add='+')
+        cart_btn_edit.bind('<Button-1>', lambda event: self.view.clear(), add='+')
         cart_btn_edit.bind('<Button-1>', lambda event: self.destroy(), add='+')
         cart_btn_cancel = ttk.Button(self, text='Закрыть', command=self.destroy)
         cart_btn_cancel.grid(row = y + 4, column=0, pady=15)
 
     def get_c(self, y, list_1, list_2, list_3, map, user, var):
-        print('---', list_1)
-        print('>>>', list_1[0])
         final_list = []
         for i in range(y):
             final_list.append((list_1[i], list_2[i], map, user, list_3[i], var[i]))
