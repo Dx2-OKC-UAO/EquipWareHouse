@@ -94,29 +94,70 @@ def give_object(state, var):
 
 def give_object_cart(name, quantity, barcode, state, user, application, var):
     current_date = date.today()
-    cur_cart.execute('''Select Quantity FROM Warehouse WHERE Id=?''', var)
+    cur_cart.execute('''Select Quantity FROM Warehouse WHERE Id=?''', [var])
     number = cur_cart.fetchone()
-    number_f = int(number[0])
-    final = number_f - int(quantity)
-    if final > 0:
-        cur_cart.execute('''UPDATE Warehouse SET Quantity=? WHERE Id=?''', (final, var))
-        db_cart.commit()
-        cur_cart.execute('''SELECT ID FROM Issued WHERE Id=(SELECT MAX(Id) FROM Issued)''')
-        ID_last = cur_cart.fetchone()
-        cur_cart.execute(
-            '''INSERT INTO Issued (Name, Quantity, Barcode, State, User, Application, Data) VALUES (?, ?, ?, ?, ?, ?, ?) ''',
-            (name, quantity, barcode, state, user, application, current_date))
-        db_cart.commit()
-        cur_cart.execute('''SELECT ID FROM Issued WHERE Id=(SELECT MAX(Id) FROM Issued)''')
-        ID_new = cur_cart.fetchone()
+    try:
+        number_f = int(number[0])
+        final = number_f - int(quantity)
+        if final >= 0:
+            cur_cart.execute('''UPDATE Warehouse SET Quantity=? WHERE Id=?''', (final, var))
+            db_cart.commit()
+            cur_cart.execute('''SELECT ID FROM Issued WHERE Id=(SELECT MAX(Id) FROM Issued)''')
+            ID_last = cur_cart.fetchone()
+            cur_cart.execute(
+                '''INSERT INTO Issued (Name, Quantity, Barcode, State, User, Application, Data) VALUES (?, ?, ?, ?, ?, ?, ?) ''',
+                (name, quantity, barcode, state, user, application, current_date))
+            db_cart.commit()
+            cur_cart.execute('''SELECT ID FROM Issued WHERE Id=(SELECT MAX(Id) FROM Issued)''')
+            ID_new = cur_cart.fetchone()
 
-        if ID_new > ID_last:
-            mb.showinfo('Информация', 'Картридж выдан')
+            if ID_new > ID_last:
+                mb.showinfo('Информация', 'Картридж выдан')
+            else:
+                mb.showerror('Ошибка', 'Убери свои кривые руки от компьютера!!!')
+
         else:
-            mb.showerror('Ошибка', 'Убери свои кривые руки от компьютера!!!')
+            mb.showerror('Информация', 'Картриджы отсутвуют')
+    except TypeError:
+        mb.showerror('Информация', 'Картриджы отсутвуют в базе')
 
-    else:
-        mb.showerror('Информация', 'Картриджы отсутвуют')
+
+def give_many_cart(final_list):
+    for item in final_list:
+
+        current_date = date.today()
+        cur_cart.execute('''Select Quantity FROM Warehouse WHERE Id=?''', item[5])
+        number = cur_cart.fetchone()
+        cur_cart.execute('''Select Barcode FROM Warehouse WHERE Id=?''', item[5])
+        barcode = cur_cart.fetchone()
+        bar = int(barcode[0])
+        print(bar)
+
+        try:
+            number_f = int(number[0])
+            final = number_f - int(item[1])
+            if final >= 0:
+                cur_cart.execute('''UPDATE Warehouse SET Quantity=? WHERE Id=?''', (final, item[5]))
+                db_cart.commit()
+                cur_cart.execute('''SELECT ID FROM Issued WHERE Id=(SELECT MAX(Id) FROM Issued)''')
+                ID_last = cur_cart.fetchone()
+                cur_cart.execute(
+                    '''INSERT INTO Issued (Name, Quantity, Barcode, State, User, Application, Data) VALUES (?, ?, ?, ?, ?, ?, ?) ''',
+                    (item[0], int(item[1]), bar, item[2], item[3], int(item[4]), current_date))
+                db_cart.commit()
+                cur_cart.execute('''SELECT ID FROM Issued WHERE Id=(SELECT MAX(Id) FROM Issued)''')
+                ID_new = cur_cart.fetchone()
+
+                if ID_new > ID_last:
+                    mb.showinfo('Информация', 'Картридж выдан')
+                else:
+                    mb.showerror('Ошибка', 'Убери свои кривые руки от компьютера!!!')
+
+            else:
+                mb.showerror('Информация', 'Картриджы отсутвуют')
+        except TypeError:
+            mb.showerror('Информация', 'Картриджы отсутвуют в базе')
+
 
 
 def get_map():
@@ -162,7 +203,7 @@ def change_cart_quantity(have, take, var):
 
 
 def check_user(log, pas):
-    log_r, pas_r = 0, 0
+    log_r, pas_r, index, pas_check, log_check = 0, 0, 0, 0, 0
     current_date = date.today()
     log_list = []
     pas_list = []
@@ -172,6 +213,7 @@ def check_user(log, pas):
     pas_list = cur_cart.fetchall()
 
     for login in log_list:
+        index += 1
         if ("".join(login)) == log:
             log_r = 2
             for password in pas_list:
@@ -181,9 +223,15 @@ def check_user(log, pas):
                     db_cart.commit()
                     mb.showinfo('Авторизация', 'Авторизация прошла успешно')
                 else:
-                    mb.showerror('Авторизация', 'Пароль не верный')
+                    pas_check += 1
+
         else:
-            mb.showerror('Авторизация', 'Такой логин не зарегистрирован')
+            log_check += 1
+
+    if log_check == index:
+        mb.showerror('Авторизация', 'Такой логин не зарегистрирован')
+    if pas_check == index:
+        mb.showerror('Авторизация', 'Пароль не верный')
 
     res = log_r + pas_r
     return res

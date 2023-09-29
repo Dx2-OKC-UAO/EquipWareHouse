@@ -4,6 +4,8 @@ from tkinter import ttk
 import db
 from tkinter.ttk import Notebook
 from tkcalendar import DateEntry
+import functions
+import globals
 
 
 class Window(Frame):
@@ -92,7 +94,19 @@ class Window(Frame):
         cart_btn_delete_dialog = Button(toolbar_cart, text='Выдать', bg='beige', bd=0, image=self.delete_img,
                                         compound=TOP, command=self.give_cart)
         cart_btn_delete_dialog.grid(row=0, column=4)
+
+        self.add_img_cart = PhotoImage(file='icons/add.png')
+        btn_open_dialog = Button(toolbar_cart, text='Добавить товар в список ', bg='beige',
+                                 bd=0, compound=TOP, image=self.add_img, command=self.add_list_cart)
+        btn_open_dialog.grid(row=0, column=5)
+
+        self.add_img_cart = PhotoImage(file='icons/add.png')
+        btn_open_dialog = Button(toolbar_cart, text='Выдать все картриджи ', bg='beige',
+                                 bd=0, compound=TOP, image=self.add_img, command=self.open_many_cart)
+        btn_open_dialog.grid(row=0, column=6)
+
         toolbar_cart.pack(fill=BOTH)
+
 
         # СОЗДАНИЕ ВИДЖЕТА ТАБЛИЦЫ ТЕХНИКИ
 
@@ -135,8 +149,18 @@ class Window(Frame):
         self.tree2.heading('Name', text='Название')
         self.tree2.heading('Quantity', text='Количество')
         self.tree2.heading('Barcode', text='Штрих-код')
+        self.tree2.tag_configure('few', foreground='red')
+        self.tree2.tag_configure('buy', foreground='green')
         for row in db.get_data_cart():
-            self.tree2.insert('', END, values=row)
+            if row[2] == '':
+                self.tree2.insert('', END, values=row, tags=('evenrow',))
+                continue
+            if row[2] is None:
+                self.tree2.insert('', END, values=row, tags=('evenrow',))
+                continue
+            if row[2] < 5:
+                self.tree2.insert('', END, values=row, tags=('few',))
+        #        self.tree2.insert('', END, values=row)
         scroll_y = ttk.Scrollbar(tab_2, orient='vertical', command=self.tree2.yview)
         self.tree2.configure(yscrollcommand=scroll_y.set)
         scroll_y.pack(fill=Y, side=RIGHT)
@@ -186,7 +210,19 @@ class Window(Frame):
         [self.tree.delete(i) for i in self.tree.get_children()]
         [self.tree.insert('', 'end', values=row) for row in db.get_data()]
         [self.tree2.delete(i) for i in self.tree2.get_children()]
-        [self.tree2.insert('', 'end', values=row) for row in db.get_data_cart()]
+        for row in db.get_data_cart():
+            if row[2] == '':
+                self.tree2.insert('', END, values=row, tags=('evenrow',))
+                continue
+            if row[2] is None:
+                self.tree2.insert('', END, values=row, tags=('evenrow',))
+                continue
+            if row[2] < 5:
+                self.tree2.insert('', END, values=row, tags=('few',))
+            if row[2] >= 5:
+                self.tree2.insert('', END, values=row, tags=('buy',))
+
+    #        [self.tree2.insert('', 'end', values=row, tags= ('evenrow',)) for row in db.get_data_cart()]
 
     # --------------------Добавление записей-------------------- #
     # Добавить запись
@@ -231,7 +267,18 @@ class Window(Frame):
     def give_object_cart(self, name, quantity, barcode, state, user, application):
 
         db.give_object_cart(name, quantity, barcode, state, user, application,
-                                self.tree2.set(self.tree2.selection()[0], '#1'))
+                            self.tree2.set(self.tree2.selection()[0], '#1'))
+        self.view_records()
+
+    def give_many_cart(self, final_list):
+
+        db.give_many_cart(final_list)
+        self.view_records()
+
+
+    def add_in_list_cart(self, name, quantity):
+
+        functions.list_of_cart(name, quantity, self.tree2.set(self.tree2.selection()[0], '#1'))
         self.view_records()
 
     # --------------------Поиск среди записей-------------------- #
@@ -301,6 +348,13 @@ class Window(Frame):
         except IndexError:
             mb.showwarning('Информация', 'Пожалуйста выберите запись')
 
+    def add_list_cart(self):
+        try:
+            self.tree2.set(self.tree2.selection()[0], '#1')
+            ListCart()
+        except IndexError:
+            mb.showwarning('Информация', 'Пожалуйста выберите запись')
+
     def add_cart_quantity(self):
         if self.res == 3:
             try:
@@ -310,6 +364,9 @@ class Window(Frame):
                 mb.showwarning('Информация', 'Пожалуйста выберите запись')
         else:
             mb.showerror('Ошибка', 'Необходимо авторизоваться')
+
+    def open_many_cart(self):
+        ManyCart()
 
     # --------------------Поиск среди записей-------------------- #
     def search(self):
@@ -514,7 +571,10 @@ class AddCartQuantity(Toplevel):
 
     def default_change(self):
         row = db.defalt_quantity(self.view.tree2.set(self.view.tree2.selection()[0], '#1'))
-        self.entry_have.insert(0, row[0])
+        if row[0] is not None:
+            self.entry_have.insert(0, row[0])
+        else:
+            self.entry_have.insert(0, ' ')
 
 
 class Search(Toplevel):
@@ -560,6 +620,7 @@ class SearchCart(Search):
 class GiveCart(Toplevel):
     def __init__(self):
         super().__init__(root)
+        self.buf = []
         self.view = app
         self.init_give_cart()
         self.default_cart()
@@ -567,6 +628,8 @@ class GiveCart(Toplevel):
     def init_give_cart(self):
         self.title('Выдача')
         self.geometry('400x220+400+300')
+
+
         self.resizable(False, False)
 
         cart_label_name = Label(self, text='Название')
@@ -591,6 +654,7 @@ class GiveCart(Toplevel):
         self.cart_entry_name.grid(row=0, column=1, sticky='e', padx=30, pady=3)
 
         self.cart_entry_quantity = ttk.Entry(self, width=30)
+        self.cart_entry_quantity.insert(END, '1')
         self.cart_entry_quantity.grid(row=1, column=1, sticky='e', padx=30, pady=3)
 
         self.cart_entry_barcode = ttk.Entry(self, width=30)
@@ -620,12 +684,55 @@ class GiveCart(Toplevel):
 
     def default_cart(self):
         row_cart = db.defalt_data_cart(self.view.tree2.set(self.view.tree2.selection()[0], '#1'))
-        print(row_cart)
         self.cart_entry_name.insert(0, row_cart[1])
+        self.cart_entry_name.config(state='readonly')
         if row_cart[3] is not None:
             self.cart_entry_barcode.insert(0, row_cart[3])
+            self.cart_entry_barcode.config(state='readonly')
         else:
             self.cart_entry_barcode.insert(0, 'None')
+            self.cart_entry_barcode.config(state='readonly')
+
+
+class ListCart(Toplevel):
+    def __init__(self):
+        super().__init__(root)
+        self.buf = []
+        self.view = app
+        self.init_give_cart()
+        self.default_cart()
+
+    def init_give_cart(self):
+        self.title('Выдача')
+        #self.geometry('400x220+400+300')
+        self.geometry('400x130+400+300')
+        self.resizable(False, False)
+
+        cart_label_name = Label(self, text='Название')
+        cart_label_name.grid(row=0, column=0, sticky='w', padx=30)
+
+        cart_label_quantity = Label(self, text='Количество: ')
+        cart_label_quantity.grid(row=1, column=0, sticky='w', padx=30)
+
+        self.cart_entry_name = ttk.Entry(self, width=30)
+        self.cart_entry_name.grid(row=0, column=1, sticky='e', padx=30, pady=3)
+
+        self.cart_entry_quantity = ttk.Entry(self, width=30)
+        self.cart_entry_quantity.insert(END, '1')
+        self.cart_entry_quantity.grid(row=1, column=1, sticky='e', padx=30, pady=3)
+
+        cart_btn_edit = ttk.Button(self, text='Выдать')
+        cart_btn_edit.grid(row=6, column=1, pady=15)
+        cart_btn_edit.bind('<Button-1>', lambda event: self.view.add_in_list_cart(self.cart_entry_name.get(),
+                                                                                  self.cart_entry_quantity.get()))
+        cart_btn_edit.bind('<Button-1>', lambda event: self.destroy(), add='+')
+        cart_btn_cancel = ttk.Button(self, text='Закрыть', command=self.destroy)
+        cart_btn_cancel.grid(row=6, column=0, pady=15)
+
+    def default_cart(self):
+        row_cart = db.defalt_data_cart(self.view.tree2.set(self.view.tree2.selection()[0], '#1'))
+        self.cart_entry_name.insert(0, row_cart[1])
+        self.cart_entry_name.config(state='readonly')
 
 
 class Give(Toplevel):
@@ -717,15 +824,120 @@ class Authorization(Toplevel):
         cart_btn_edit.bind('<Button-1>', lambda event: self.destroy(), add='+')
 
 
+class ManyCart(Toplevel):
+    def __init__(self):
+        super().__init__(root)
+        self.view = app
+        self.init_many_cart()
+
+    def init_many_cart(self):
+        my_entries_name = []
+        my_entries_count = []
+        my_entries_application = []
+        list_of_id = []
+        self.title('Выдача')
+        ll = functions.get_len()
+        dl = 50*ll
+        self.geometry(f'600x{150 + dl}+500+300')
+        label_name = Label(self, text='Название')
+        label_qua = Label(self, text='Количество')
+        label_num = Label(self, text='Номер заявки')
+        label_name.grid(row = 0, column = 0)
+        label_qua.grid(row = 0, column = 1)
+        label_num.grid(row = 0, column = 2)
+        y = 1
+        for x in range(ll):
+            my_entry = ttk.Entry(self)
+            my_entry.insert(END, globals.listCart[x][0])
+            my_entry_2 = ttk.Entry(self)
+            my_entry_2.insert(END, globals.listCart[x][1])
+            my_entry_3 = ttk.Entry(self)
+
+            my_entry.grid(row= x+1, column = 0, pady=10, padx = 15)
+            my_entry_2.grid(row= x+1, column = 1, pady=10, padx = 15)
+            my_entry_3.grid(row= x+1, column = 2, pady=10, padx = 15)
+            my_entries_name.append(my_entry)
+            my_entries_count.append(my_entry_2)
+            my_entries_application.append(my_entry_3)
+            list_of_id.append(globals.listCart[x][2])
+            y += 1
+
+        label = Label(self, text = '-------------------------------------------------------------------------------------------------------------------------')
+        label.grid(row = y + 1, column=0, columnspan=3)
+        cart_label_state = Label(self, text='Куда выдано: ')
+        cart_label_state.grid(row = y + 2, column=0, sticky='w', padx = 15)
+
+        cart_label_state = Label(self, text='Кому выдано: ')
+        cart_label_state.grid(row = y + 3, column=0, sticky='w', padx = 15)
+
+
+        self.cart_btn_combobox = ttk.Combobox(self, values=db.get_map(), width=27)
+        self.cart_btn_combobox.current(0)
+        self.cart_btn_combobox.grid(row = y + 2, column=1, sticky='e', padx=30, pady=3)
+
+        self.cart_entry_user = ttk.Entry(self, width=30)
+        self.cart_entry_user.grid(row = y + 3, column=1, sticky='e', padx=30, pady=3)
+
+        cart_btn_edit = ttk.Button(self, text='Выдать')
+        cart_btn_edit.grid(row = y + 4, column=1, pady=15)
+        # cart_btn_edit.bind('<Button-1>', lambda event: self.list_name(my_entries_name, list_1), add='+')
+        # print(list_1)
+        # cart_btn_edit.bind('<Button-1>', lambda event: self.list_count(my_entries_count, list_2), add='+')
+        # cart_btn_edit.bind('<Button-1>', lambda event: self.list_application(my_entries_application, list_3), add='+')
+        cart_btn_edit.bind('<Button-1>', lambda event: self.get_c(y, self.list_name(my_entries_name),
+                                                                  self.list_count(my_entries_count),
+                                                                  self.list_application(my_entries_application),
+                                                                  self.cart_btn_combobox.get(),
+                                                                  self.cart_entry_user.get(), list_of_id), add='+')
+
+        # cart_btn_edit.bind('<Button-1>', lambda event: self.destroy(), add='+')
+        cart_btn_edit.bind('<Button-1>', lambda event: self.destroy(), add='+')
+        cart_btn_cancel = ttk.Button(self, text='Закрыть', command=self.destroy)
+        cart_btn_cancel.grid(row = y + 4, column=0, pady=15)
+
+    def get_c(self, y, list_1, list_2, list_3, map, user, var):
+        print('---', list_1)
+        print('>>>', list_1[0])
+        final_list = []
+        for i in range(y):
+            final_list.append((list_1[i], list_2[i], map, user, list_3[i], var[i]))
+        self.view.give_many_cart(final_list)
+
+
+    def list_name(self, my_entries_name):
+        list_1=[]
+        for entries in my_entries_name:
+            list_1.append(entries.get())
+        return list_1
+
+    def list_count(self, my_entries_count):
+        list_2 = []
+        for entries in my_entries_count:
+            list_2.append(entries.get())
+        return list_2
+
+    def list_application(self, my_entries_application):
+        list_3=[]
+        for entries in my_entries_application:
+            list_3.append(entries.get())
+        return list_3
+
+    # def clean(self):
+    #     globals.listCart = []
+    #     globals.list_1 = []
+    #     globals.list_2 = []
+    #     globals.list_3 = []
+
+
 if __name__ == "__main__":
+    globals.init_global()
     db.start_object_db()
     db.start_cart_db()
-    #    db.check_user('Krasti', '1234')
     root = Tk()
     app = Window(root, 0)
     app.pack()
     title = 'Склад'
     root.title(title)
     root.geometry("1000x700+50+50")
-    root.resizable(False, False)
+    root.resizable(True, True)
     root.mainloop()
