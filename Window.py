@@ -71,44 +71,49 @@ class Window(Frame):
 
         self.add_img_cart = PhotoImage(file='icons/add.png')
         btn_open_dialog = Button(toolbar_cart, text='Добавить товар ', bg='beige',
-                                 bd=0, compound=TOP, image=self.add_img, command=self.add_cart)
-        btn_open_dialog.grid(row=0, column=0)
+                                 bd=0, compound=TOP, image=self.add_img_cart, command=self.add_cart)
+        btn_open_dialog.grid(row=0, column=0, padx=3)
 
-        self.add_img_cart = PhotoImage(file='icons/add.png')
-        btn_open_dialog = Button(toolbar_cart, text='Приход:  ', bg='beige',
-                                 bd=0, compound=TOP, image=self.add_img, command=self.add_cart_quantity)
-        btn_open_dialog.grid(row=0, column=1)
+        self.come_img_cart = PhotoImage(file='icons/come.png')
+        btn_open_dialog = Button(toolbar_cart, text='Приход  ', bg='beige',
+                                 bd=0, compound=TOP, image=self.come_img_cart, command=self.add_cart_quantity)
+        btn_open_dialog.grid(row=0, column=1, padx=3)
 
         self.search_img_cart = PhotoImage(file='icons/search.png')
-        btn_search = Button(toolbar_cart, text='Поиск', bg='beige', bd=0, image=self.search_img,
+        btn_search = Button(toolbar_cart, text='Поиск', bg='beige', bd=0, image=self.search_img_cart,
                             compound=TOP, command=self.search_cart)
 
-        btn_search.grid(row=0, column=2)
+        btn_search.grid(row=0, column=2, padx=3)
 
         self.refresh_img_cart = PhotoImage(file='icons/refresh.png')
-        btn_refresh = Button(toolbar_cart, text='Обновить', bg='beige', bd=0, image=self.refresh_img,
+        btn_refresh = Button(toolbar_cart, text='Обновить', bg='beige', bd=0, image=self.refresh_img_cart,
                              compound=TOP, command=self.view_records)
-        btn_refresh.grid(row=0, column=3)
+        btn_refresh.grid(row=0, column=3, padx=3)
 
         self.give_img_cart = PhotoImage(file='icons/delete.png')
         cart_btn_delete_dialog = Button(toolbar_cart, text='Выдать', bg='beige', bd=0, image=self.delete_img,
                                         compound=TOP, command=self.give_cart)
-        cart_btn_delete_dialog.grid(row=0, column=4)
+        cart_btn_delete_dialog.grid(row=0, column=4, padx=3)
 
-        self.add_img_cart = PhotoImage(file='icons/add.png')
+        self.add_cart_img_cart = PhotoImage(file='icons/add_cart.png')
         btn_open_dialog = Button(toolbar_cart, text='Добавить товар в список ', bg='beige',
-                                 bd=0, compound=TOP, image=self.add_img, command=self.add_list_cart)
-        btn_open_dialog.grid(row=0, column=5)
+                                 bd=0, compound=TOP, image=self.add_cart_img_cart, command=self.add_list_cart)
+        btn_open_dialog.grid(row=0, column=5, padx=3)
 
-        self.add_img_cart = PhotoImage(file='icons/add.png')
+        self.give_all_img_cart = PhotoImage(file='icons/give.png')
         btn_open_dialog = Button(toolbar_cart, text='Выдать все картриджи ', bg='beige',
-                                 bd=0, compound=TOP, image=self.add_img, command=self.open_many_cart)
-        btn_open_dialog.grid(row=0, column=6)
+                                 bd=0, compound=TOP, image=self.give_all_img_cart, command=self.open_many_cart)
+        btn_open_dialog.grid(row=0, column=6, padx=3)
 
-        self.add_img_cart = PhotoImage(file='icons/add.png')
+        self.clean_basket_img_cart = PhotoImage(file='icons/delete.png')
         btn_open_dialog = Button(toolbar_cart, text='Очистить список', bg='beige',
-                                 bd=0, compound=TOP, image=self.add_img, command=self.clear)
-        btn_open_dialog.grid(row=0, column=7)
+                                 bd=0, compound=TOP, image=self.clean_basket_img_cart, command=self.clear)
+        btn_open_dialog.grid(row=0, column=7, padx=3)
+
+        self.buy_img_cart = PhotoImage(file='icons/basket.png')
+        btn_open_dialog = Button(toolbar_cart, text='Добавить в закупку', bg='beige',
+                                 bd=0, compound=TOP, image=self.buy_img_cart, command=self.cart_to_buy)
+        btn_open_dialog.grid(row=0, column=8, padx=3)
 
         toolbar_cart.pack(fill=BOTH)
 
@@ -156,16 +161,18 @@ class Window(Frame):
         self.tree2.heading('Barcode', text='Штрих-код')
         self.tree2.tag_configure('few', foreground='red')
         self.tree2.tag_configure('buy', foreground='green')
+        self.tree2.tag_configure('enough', foreground='black')
         for row in db.get_data_cart():
             if row[2] == '':
-                self.tree2.insert('', END, values=row, tags=('evenrow',))
+                self.tree2.insert('', END, values=row, tags=('enough',))
                 continue
             if row[2] is None:
-                self.tree2.insert('', END, values=row, tags=('evenrow',))
+                self.tree2.insert('', END, values=row, tags=('enough',))
                 continue
             if row[2] < 5:
                 self.tree2.insert('', END, values=row, tags=('few',))
-        #        self.tree2.insert('', END, values=row)
+            if row[4] == 1:
+                self.tree2.insert('', END, values=row, tags=('buy',))
         scroll_y = ttk.Scrollbar(tab_2, orient='vertical', command=self.tree2.yview)
         self.tree2.configure(yscrollcommand=scroll_y.set)
         scroll_y.pack(fill=Y, side=RIGHT)
@@ -216,18 +223,32 @@ class Window(Frame):
         [self.tree.insert('', 'end', values=row) for row in db.get_data()]
         [self.tree2.delete(i) for i in self.tree2.get_children()]
         for row in db.get_data_cart():
-            if row[2] == '':
-                self.tree2.insert('', END, values=row, tags=('evenrow',))
-                continue
-            if row[2] is None:
-                self.tree2.insert('', END, values=row, tags=('evenrow',))
-                continue
-            if row[2] < 5:
-                self.tree2.insert('', END, values=row, tags=('few',))
-            if row[2] >= 5:
+            if row[4] == 1:
                 self.tree2.insert('', END, values=row, tags=('buy',))
+            else:
+                if row[2] == '':
+                    self.tree2.insert('', END, values=row, tags=('enough',))
+                    continue
+                if row[2] is None:
+                    self.tree2.insert('', END, values=row, tags=('enough',))
+                    continue
+                if row[2] < 5:
+                    self.tree2.insert('', END, values=row, tags=('few',))
+                if row[2] >= 5:
+                    self.tree2.insert('', END, values=row, tags=('enough',))
 
-    #        [self.tree2.insert('', 'end', values=row, tags= ('evenrow',)) for row in db.get_data_cart()]
+    def cart_to_buy(self):
+
+        # if self.res == 3:
+        try:
+            db.cart_buy_db(self.tree2.set(self.tree2.selection()[0], '#1'))
+        except IndexError:
+            mb.showwarning('Информация', 'Пожалуйста выберите запись')
+        # else:
+        #     mb.showerror('Ошибка', 'Необходимо авторизоваться')
+        self.view_records()
+
+
 
     # --------------------Добавление записей-------------------- #
     # Добавить запись
@@ -635,7 +656,7 @@ class GiveCart(Toplevel):
 
     def init_give_cart(self):
         self.title('Выдача')
-        self.geometry('400x220+400+300')
+        self.geometry('600x220+400+300')
 
 
         self.resizable(False, False)
@@ -658,24 +679,24 @@ class GiveCart(Toplevel):
         cart_label_application = Label(self, text='Номер заявки: ')
         cart_label_application.grid(row=5, column=0, sticky='w', padx=30)
 
-        self.cart_entry_name = ttk.Entry(self, width=30)
+        self.cart_entry_name = ttk.Entry(self, width=60)
         self.cart_entry_name.grid(row=0, column=1, sticky='e', padx=30, pady=3)
 
-        self.cart_entry_quantity = ttk.Entry(self, width=30)
+        self.cart_entry_quantity = ttk.Entry(self, width=60)
         self.cart_entry_quantity.insert(END, '1')
         self.cart_entry_quantity.grid(row=1, column=1, sticky='e', padx=30, pady=3)
 
-        self.cart_entry_barcode = ttk.Entry(self, width=30)
+        self.cart_entry_barcode = ttk.Entry(self, width=60)
         self.cart_entry_barcode.grid(row=2, column=1, sticky='e', padx=30, pady=3)
 
-        self.cart_btn_combobox = ttk.Combobox(self, values=db.get_map(), width=27)
+        self.cart_btn_combobox = ttk.Combobox(self, values=db.get_map(), width=57)
         self.cart_btn_combobox.current(0)
         self.cart_btn_combobox.grid(row=3, column=1, sticky='e', padx=30, pady=3)
 
-        self.cart_entry_user = ttk.Entry(self, width=30)
+        self.cart_entry_user = ttk.Entry(self, width=60)
         self.cart_entry_user.grid(row=4, column=1, sticky='e', padx=30, pady=3)
 
-        self.cart_entry_application = ttk.Entry(self, width=30)
+        self.cart_entry_application = ttk.Entry(self, width=60)
         self.cart_entry_application.grid(row=5, column=1, sticky='e', padx=30, pady=3)
 
         cart_btn_edit = ttk.Button(self, text='Выдать')
@@ -846,7 +867,7 @@ class ManyCart(Toplevel):
         self.title('Выдача')
         ll = functions.get_len()
         dl = 50*ll
-        self.geometry(f'600x{150 + dl}+500+300')
+        self.geometry(f'700x{150 + dl}+500+300')
         label_name = Label(self, text='Название')
         label_qua = Label(self, text='Количество')
         label_num = Label(self, text='Номер заявки')
@@ -861,9 +882,9 @@ class ManyCart(Toplevel):
             my_entry_2.insert(END, globals.listCart[x][1])
             my_entry_3 = ttk.Entry(self)
 
-            my_entry.grid(row= x+1, column = 0, pady=10, padx = 15)
-            my_entry_2.grid(row= x+1, column = 1, pady=10, padx = 15)
-            my_entry_3.grid(row= x+1, column = 2, pady=10, padx = 15)
+            my_entry.grid(row= x+1, column = 0, pady=10, padx = 5)
+            my_entry_2.grid(row= x+1, column = 1, pady=10, padx = 5)
+            my_entry_3.grid(row= x+1, column = 2, pady=10, padx = 5)
             my_entries_name.append(my_entry)
             my_entries_count.append(my_entry_2)
             my_entries_application.append(my_entry_3)
@@ -879,11 +900,11 @@ class ManyCart(Toplevel):
         cart_label_state.grid(row = y + 3, column=0, sticky='w', padx = 15)
 
 
-        self.cart_btn_combobox = ttk.Combobox(self, values=db.get_map(), width=27)
+        self.cart_btn_combobox = ttk.Combobox(self, values=db.get_map(), width=57)
         self.cart_btn_combobox.current(0)
         self.cart_btn_combobox.grid(row = y + 2, column=1, sticky='e', padx=30, pady=3)
 
-        self.cart_entry_user = ttk.Entry(self, width=30)
+        self.cart_entry_user = ttk.Entry(self, width=60)
         self.cart_entry_user.grid(row = y + 3, column=1, sticky='e', padx=30, pady=3)
 
         cart_btn_edit = ttk.Button(self, text='Выдать')

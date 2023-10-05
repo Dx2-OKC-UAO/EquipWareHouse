@@ -51,6 +51,21 @@ def write_off(var):
     db.commit()
 
 
+def cart_buy_db(var):
+    cur_cart.execute('''SELECT Buy FROM Warehouse WHERE Id=?''', [var])
+    res = cur_cart.fetchone()
+    db_cart.commit()
+    print(res)
+    if res[0] == 1:
+        print('1')
+        cur_cart.execute('''UPDATE Warehouse SET Buy=? WHERE Id=?''', (0, var))
+        db_cart.commit()
+    else:
+        print('2')
+        cur_cart.execute('''UPDATE Warehouse SET Buy=? WHERE Id=?''', (1, var))
+        db_cart.commit()
+
+
 def add_new_record(local, name, ident, number, quantity, status, state):
     cur.execute(
         '''INSERT INTO Home (Local, Name, Ident, Number, Quantity, Status, State) VALUES (?, ?, ?, ?, ?, ?, ?) ''',
